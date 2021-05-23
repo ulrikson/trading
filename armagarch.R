@@ -15,15 +15,13 @@ df$logreturns <- c(0, logreturns)
 test_size = 253 # one year
 train_size = nrow(df) - test_size
 train = df[1:train_size,]
+lr_train = train$logreturns
 test = df[(train_size+1): nrow(df),]
-
-tail(df)
 
 
 # Tests ------------------------------------------------------------------------------------
 
 # Plot
-lr_train = train$logreturns
 ts.plot(lr_train, xlab = "Day", ylab = "Closing price")
 abline(a = 0, 0, col = "red")
 
@@ -73,3 +71,43 @@ plot(density(arma_garch@residuals))
 #* However, shapiro wilks, qqnorm and density plot doesn't suggest normality in residuals
 #* Modelling the cond.dist with t-distribution doesn't help either. 
 #* Ignoring normality for now, just note that model may not be at its most optimal
+
+
+
+# Cross validating ----------------------------------------------------------------------------------
+
+time = c()
+close = c()
+forecast = c()
+
+i = 1
+while (i <= test_size) {
+  train_size_cross = train_size + i - 1
+  train_cross = df[1:train_size_cross, ]
+  test_cross = df[(train_size_cross+1) : nrow(df), ]
+  
+  lr_train_cross = train_cross$logreturns
+  
+  arma_garch = garchFit(
+    formula = ~ arma(1, 1) + garch(1, 1),
+    data = lr_train_cross,
+    trace = FALSE
+  )
+  
+  arma_pred = predict(arma_garch, n.ahead = 1, plot=FALSE)
+  last_train = tail(train_cross, 1)$Close
+  forecasted_price = exp(cumsum(arma_pred$meanForecast) + log(last_train))
+
+  time = c(time, rep(i, 1))
+  close = c(close, head(test_cross,1)$Close)
+  forecast = c(forecast, forecasted_price)
+  
+  print(paste(i, "of", test_size))
+  
+  i = i+1
+}
+
+df_cross = data.frame(time, close, forecast)
+head(df_cross)
+
+write.csv(df, "data/r_cross_val.csv", row.names=FALSE)
