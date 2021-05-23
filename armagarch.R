@@ -1,0 +1,75 @@
+library(forecast)
+library(aTSA)
+library(fGarch)
+library(urca)
+
+
+# Data ----------------------------------------------------------------------------------------
+
+df = read.csv('data/msft_raw.csv', header=TRUE)
+
+logreturns = diff(log(df$Close), lag=1)
+df$logreturns <- 0
+df$logreturns <- c(0, logreturns)
+
+test_size = 253 # one year
+train_size = nrow(df) - test_size
+train = df[1:train_size,]
+test = df[(train_size+1): nrow(df),]
+
+tail(df)
+
+
+# Tests ------------------------------------------------------------------------------------
+
+# Plot
+lr_train = train$logreturns
+ts.plot(lr_train, xlab = "Day", ylab = "Closing price")
+abline(a = 0, 0, col = "red")
+
+# Stationarity
+adf_auto = ur.df(lr_train, selectlags = "AIC") # 1 lag
+adf.test(lr_train, nlag=1) # => stationary
+
+# Heteroskedasticity
+auto_arima = auto.arima(lr_train, ic = "bic", seasonal = FALSE)
+arimaorder(auto_arima)
+arima = arima(lr_train, c(1, 0, 0)) #  inserting into model (needed for arch.test)
+
+arch.test(arima, output = TRUE) #  => heteroskedasticity
+
+# Fitting ARMA-GARCH --------------------------------------------------------------------------
+
+fit_ics = function(p, q, x, y) {
+  model = garchFit(substitute(~ arma(p, q) + garch(x, y),
+                              list(
+                                p = p,
+                                q = q,
+                                x = x,
+                                y = y
+                              )),
+                   data = lr_train,
+                   trace = FALSE)
+  print(model@fit$ics)
+}
+
+fit_ics(1,0,1,1) # 1,0 is suggested by auto.arima
+fit_ics(1,1,1,1) # Slightly better
+
+# Best model, from above
+arma_garch = garchFit(
+  formula = ~ arma(1, 1) + garch(1, 1),
+  data = lr_train,
+  trace = FALSE
+)
+summary(arma_garch)
+
+qqnorm(arma_garch@residuals)
+qqline(arma_garch@residuals)
+plot(density(arma_garch@residuals))
+
+#* Ljung-Box test show independent residuals
+#* LM ARCH test show no signs of heteroskedasticity left
+#* However, shapiro wilks, qqnorm and density plot doesn't suggest normality in residuals
+#* Modelling the cond.dist with t-distribution doesn't help either. 
+#* Ignoring normality for now, just note that model may not be at its most optimal
