@@ -76,7 +76,7 @@ plot(density(arma_garch@residuals))
 
 # Cross validating ----------------------------------------------------------------------------------
 
-time = c()
+date = c()
 close = c()
 forecast = c()
 
@@ -98,7 +98,7 @@ while (i <= test_size) {
   last_train = tail(train_cross, 1)$Close
   forecasted_price = exp(cumsum(arma_pred$meanForecast) + log(last_train))
 
-  time = c(time, rep(i, 1))
+  date = c(date, head(test_cross, 1)$Date)
   close = c(close, head(test_cross,1)$Close)
   forecast = c(forecast, forecasted_price)
   
@@ -107,7 +107,7 @@ while (i <= test_size) {
   i = i+1
 }
 
-df_cross = data.frame(time, close, forecast)
+df_cross = data.frame(date, close, forecast)
 head(df_cross)
 
-write.csv(df, "data/r_cross_val.csv", row.names=FALSE)
+write.csv(df_cross, "data/r_cross_val.csv", row.names=FALSE)
