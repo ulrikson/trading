@@ -3,10 +3,12 @@ library(aTSA)
 library(fGarch)
 library(urca)
 
+options(warn=-1)
+
 
 # Data ----------------------------------------------------------------------------------------
 
-df = read.csv('data/TSLA.csv', header=TRUE)
+df = read.csv('data/BRK-B.csv', header=TRUE)
 df = subset(df, subset=Close != "null")
 df$Close = as.numeric(df$Close)
 
@@ -34,7 +36,7 @@ adf.test(lr_train, nlag=1) # => stationary
 # Heteroskedasticity
 auto_arima = auto.arima(lr_train, ic = "bic", seasonal = FALSE)
 arimaorder(auto_arima)
-arima = arima(lr_train, c(0, 0, 0)) #  inserting into model (needed for arch.test)
+arima = arima(lr_train, c(1, 0, 0)) #  inserting into model (needed for arch.test)
 
 arch.test(arima, output = TRUE) #  => heteroskedasticity
 
@@ -60,7 +62,7 @@ fit_ics(1,1,1,1)
 
 # Best model, from above
 arma_garch = garchFit(
-  formula = ~ arma(0, 0) + garch(1, 1),
+  formula = ~ arma(1, 0) + garch(1, 1),
   data = lr_train,
   trace = FALSE
 )
@@ -116,4 +118,4 @@ while (i <= test_size) {
 df_cross = data.frame(date, close, forecast)
 head(df_cross)
 
-write.csv(df_cross, "data/tsla_cross_val.csv", row.names=FALSE)
+write.csv(df_cross, "data/brk-b_ag.csv", row.names=FALSE)
