@@ -76,9 +76,11 @@ plot(density(arma_garch@residuals))
 
 # Cross validating ----------------------------------------------------------------------------------
 
-date = c()
-close = c()
-forecast = c()
+last_train = tail(train,1)
+
+date = c(last_train$Date)
+close = c(last_train$Close)
+forecast = c(last_train$Close)
 
 i = 1
 while (i <= test_size) {
@@ -95,8 +97,8 @@ while (i <= test_size) {
   )
   
   arma_pred = predict(arma_garch, n.ahead = 1, plot=FALSE)
-  last_train = tail(train_cross, 1)$Close
-  forecasted_price = exp(cumsum(arma_pred$meanForecast) + log(last_train))
+  last_train_cross = tail(train_cross, 1)$Close
+  forecasted_price = exp(cumsum(arma_pred$meanForecast) + log(last_train_cross))
 
   date = c(date, head(test_cross, 1)$Date)
   close = c(close, head(test_cross,1)$Close)
