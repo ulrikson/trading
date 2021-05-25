@@ -6,7 +6,7 @@ library(urca)
 
 # Data ----------------------------------------------------------------------------------------
 
-df = read.csv('data/MSFT.csv', header=TRUE)
+df = read.csv('data/TSLA.csv', header=TRUE)
 df = subset(df, subset=Close != "null")
 df$Close = as.numeric(df$Close)
 
@@ -54,12 +54,13 @@ fit_ics = function(p, q, x, y) {
 }
 
 fit_ics(0,0,1,1)
-fit_ics(1,0,1,1) # 1,0 is suggested by auto.arima
-fit_ics(1,1,1,1) # Slightly better
+fit_ics(0,1,1,1)
+fit_ics(1,0,1,1)
+fit_ics(1,1,1,1)
 
 # Best model, from above
 arma_garch = garchFit(
-  formula = ~ arma(1, 1) + garch(1, 1),
+  formula = ~ arma(0, 0) + garch(1, 1),
   data = lr_train,
   trace = FALSE
 )
@@ -115,4 +116,4 @@ while (i <= test_size) {
 df_cross = data.frame(date, close, forecast)
 head(df_cross)
 
-write.csv(df_cross, "data/msft_cross_val.csv", row.names=FALSE)
+write.csv(df_cross, "data/tsla_cross_val.csv", row.names=FALSE)
