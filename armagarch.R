@@ -6,7 +6,9 @@ library(urca)
 
 # Data ----------------------------------------------------------------------------------------
 
-df = read.csv('data/msft_raw.csv', header=TRUE)
+df = read.csv('data/MSFT.csv', header=TRUE)
+df = subset(df, subset=Close != "null")
+df$Close = as.numeric(df$Close)
 
 logreturns = diff(log(df$Close), lag=1)
 df$logreturns <- 0
@@ -32,7 +34,7 @@ adf.test(lr_train, nlag=1) # => stationary
 # Heteroskedasticity
 auto_arima = auto.arima(lr_train, ic = "bic", seasonal = FALSE)
 arimaorder(auto_arima)
-arima = arima(lr_train, c(1, 0, 0)) #  inserting into model (needed for arch.test)
+arima = arima(lr_train, c(0, 0, 0)) #  inserting into model (needed for arch.test)
 
 arch.test(arima, output = TRUE) #  => heteroskedasticity
 
@@ -51,6 +53,7 @@ fit_ics = function(p, q, x, y) {
   print(model@fit$ics)
 }
 
+fit_ics(0,0,1,1)
 fit_ics(1,0,1,1) # 1,0 is suggested by auto.arima
 fit_ics(1,1,1,1) # Slightly better
 
@@ -112,4 +115,4 @@ while (i <= test_size) {
 df_cross = data.frame(date, close, forecast)
 head(df_cross)
 
-write.csv(df_cross, "data/r_cross_val.csv", row.names=FALSE)
+write.csv(df_cross, "data/msft_cross_val.csv", row.names=FALSE)

@@ -5,3 +5,5 @@
 *.Rproj
 .Rdata
 .Rhistory
+/data
+/img
