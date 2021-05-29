@@ -8,7 +8,11 @@ options(warn=-1)
 
 # Data ----------------------------------------------------------------------------------------
 
-df = read.csv('data/BRK-B.csv', header=TRUE)
+stock = 'NASDAQ'
+csv_in = paste(c('data/',stock,'.csv'), collapse = "")
+csv_out = paste(c('data/',tolower(stock),'_ag.csv'), collapse = "")
+
+df = read.csv(csv_in, header=TRUE)
 df = subset(df, subset=Close != "null")
 df$Close = as.numeric(df$Close)
 
@@ -36,7 +40,7 @@ adf.test(lr_train, nlag=1) # => stationary
 # Heteroskedasticity
 auto_arima = auto.arima(lr_train, ic = "bic", seasonal = FALSE)
 arimaorder(auto_arima)
-arima = arima(lr_train, c(1, 0, 0)) #  inserting into model (needed for arch.test)
+arima = arima(lr_train, c(2, 0, 0)) #  inserting into model (needed for arch.test)
 
 arch.test(arima, output = TRUE) #  => heteroskedasticity
 
@@ -62,7 +66,7 @@ fit_ics(1,1,1,1)
 
 # Best model, from above
 arma_garch = garchFit(
-  formula = ~ arma(1, 0) + garch(1, 1),
+  formula = ~ arma(1, 1) + garch(1, 1),
   data = lr_train,
   trace = FALSE
 )
@@ -118,4 +122,4 @@ while (i <= test_size) {
 df_cross = data.frame(date, close, forecast)
 head(df_cross)
 
-write.csv(df_cross, "data/brk-b_ag.csv", row.names=FALSE)
+write.csv(df_cross, csv_out, row.names=FALSE)
