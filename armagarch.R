@@ -8,7 +8,7 @@ options(warn=-1)
 
 # Data ----------------------------------------------------------------------------------------
 
-stock = 'NASDAQ'
+stock = 'BRK-B'
 csv_in = paste(c('data/',stock,'.csv'), collapse = "")
 csv_out = paste(c('data/',tolower(stock),'_ag.csv'), collapse = "")
 
@@ -63,6 +63,7 @@ fit_ics(0,0,1,1)
 fit_ics(0,1,1,1)
 fit_ics(1,0,1,1)
 fit_ics(1,1,1,1)
+fit_ics(2,0,1,1)
 
 # Best model, from above
 arma_garch = garchFit(
@@ -91,6 +92,10 @@ last_train = tail(train,1)
 date = c(last_train$Date)
 close = c(last_train$Close)
 forecast = c(last_train$Close)
+upper = c(last_train$Close)
+lower = c(last_train$Close)
+min = c(last_train$Low)
+max = c(last_train$High)
 
 i = 1
 while (i <= test_size) {
@@ -106,20 +111,26 @@ while (i <= test_size) {
     trace = FALSE
   )
   
-  arma_pred = predict(arma_garch, n.ahead = 1, plot=FALSE)
+  arma_pred = predict(arma_garch, n.ahead = 1, plot=TRUE, confint=0.7)
   last_train_cross = tail(train_cross, 1)$Close
   forecasted_price = exp(cumsum(arma_pred$meanForecast) + log(last_train_cross))
+  forecasted_lower = exp(cumsum(arma_pred$lowerInterval) + log(last_train_cross))
+  forecasted_upper = exp(cumsum(arma_pred$upperInterval) + log(last_train_cross))
 
   date = c(date, head(test_cross, 1)$Date)
   close = c(close, head(test_cross,1)$Close)
+  min = c(min, head(test_cross,1)$Low)
+  max = c(max, head(test_cross,1)$High)
   forecast = c(forecast, forecasted_price)
+  upper = c(upper, forecasted_upper)
+  lower = c(lower, forecasted_lower)
   
   print(paste(i, "of", test_size))
   
   i = i+1
 }
 
-df_cross = data.frame(date, close, forecast)
+df_cross = data.frame(date, close, min, max, forecast, lower, upper)
 head(df_cross)
 
 write.csv(df_cross, csv_out, row.names=FALSE)
